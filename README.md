@@ -3,11 +3,8 @@
 This project implements a chatbot using LLAMA 3.1, a large language model. The chatbot interface is built using Streamlit, a fast and user-friendly web application framework for Python. The chatbot leverages the Groq API to generate responses.
 
 # Screenshot
-Add screenshots of your chatbot interface here. You can include images using the following Markdown syntax:
 
 ![ChatBot Interface](images/Screenshot1.png)
-
-Replace path/to/screenshot.png with the actual file path or URL of your screenshot.
 
 ## Features
 
