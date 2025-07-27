@@ -15,7 +15,7 @@ client = Groq(api_key=GROQ_API_KEY)
 
 
 st.set_page_config(page_title="GyanVaani", page_icon="🦙")
-st.title("🦙 LLAMA 3.1 ChatBot")
+st.title("🎓 Chat with Gyaani – AI for Everyone")
 
 
 if "language" not in st.session_state:
