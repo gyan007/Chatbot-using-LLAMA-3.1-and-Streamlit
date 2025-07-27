@@ -44,7 +44,7 @@ def translate_text(text, target):
             # 1. Translate to Hindi
             hindi_text = GoogleTranslator(source='auto', target='hi').translate(text)
             # 2. Transliterate Hindi to Latin
-            return transliterate(hindi_text, DEVANAGARI, ITRANS)
+            return transliterate(hindi_text, DEVANAGARI, HK)  # or SLP1
         else:
             lang_code = "hi" if target == "hindi" else "en"
             return GoogleTranslator(source='auto', target=lang_code).translate(text)
