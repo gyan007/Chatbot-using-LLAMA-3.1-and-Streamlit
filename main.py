@@ -14,7 +14,7 @@ if not GROQ_API_KEY:
 client = Groq(api_key=GROQ_API_KEY)
 
 
-st.set_page_config(page_title="LLAMA 3.1 Chat", page_icon="🦙")
+st.set_page_config(page_title="GyanVaani", page_icon="🦙")
 st.title("🦙 LLAMA 3.1 ChatBot")
 
 
