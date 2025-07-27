@@ -29,7 +29,7 @@ if prompt:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3-8b-8192",
+            model="llama3-8b-8192",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 *st.session_state.chat_history
