@@ -3,3 +3,4 @@ groq
 deep-translator
 requests
 indic-transliteration
+streamlit-javascript
