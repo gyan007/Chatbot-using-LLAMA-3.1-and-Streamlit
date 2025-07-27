@@ -6,6 +6,7 @@ from deep_translator import GoogleTranslator
 from indic_transliteration.sanscript import transliterate, DEVANAGARI, HK
 from streamlit_javascript import st_javascript
 
+
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     st.error("GROQ_API_KEY is missing. Set it in environment or Streamlit secrets.")
@@ -33,6 +34,7 @@ with col4:
     if st.button("🇮🇳🅰 Hinglish"):
         st.session_state.language = "hinglish"
 
+
 def translate_text(text, target):
     if target == "original":
         return text
@@ -46,6 +48,7 @@ def translate_text(text, target):
     except Exception as e:
         return f"(Translation failed) {text} ({e})"
 
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -54,57 +57,56 @@ for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(translated)
 
-st.markdown("#### 🎙️ Click below mic icon to speak:")
+col1, col2 = st.columns([0.1, 0.9])
+with col1:
+    voice_trigger = st.button("🎤")
+with col2:
+    text_input = st.chat_input("Type something or use 🎤 to speak")
 
-components.html(
-    """
-    <button onclick="startRecognition()" style="font-size:16px;padding:6px 16px;margin-bottom:10px;">🎤 Click to Speak</button>
-    <p id="transcript" style="font-size:15px;color:green;margin-top:5px;"></p>
-    <script>
-        var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'hi-IN';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
+speech_result = None
+if voice_trigger:
+    st.session_state['voice_triggered'] = True
+    components.html(
+        """
+        <button onclick="startRecognition()" style="display:none;" id="hidden-voice-btn">Start</button>
+        <script>
+            var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'hi-IN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
 
-        function startRecognition() {
-            document.getElementById("transcript").innerText = "🎧 Listening...";
-            recognition.start();
+            function startRecognition() {
+                recognition.start();
+            }
+
+            recognition.onresult = function(event) {
+                var transcript = event.results[0][0].transcript;
+                window.parent.postMessage({type: 'SPEECH_RESULT', text: transcript}, '*');
+            };
+
+            document.getElementById("hidden-voice-btn").click();
+        </script>
+        """,
+        height=0,
+    )
+    speech_result = st_javascript("""await new Promise((resolve) => {
+      window.addEventListener("message", (event) => {
+        if (event.data.type === "SPEECH_RESULT") {
+          resolve(event.data.text);
         }
+      });
+    });""")
 
-        recognition.onresult = function(event) {
-            var transcript = event.results[0][0].transcript;
-            window.parent.postMessage({type: 'SPEECH_RESULT', text: transcript}, '*');
-            document.getElementById("transcript").innerText = "🗣️ You said: " + transcript;
-        };
-    </script>
-    """,
-    height=200,
-)
-
-speech_result = st_javascript("""await new Promise((resolve) => {
-  window.addEventListener("message", (event) => {
-    if (event.data.type === "SPEECH_RESULT") {
-      resolve(event.data.text);
-    }
-  });
-});""")
-
-if speech_result and isinstance(speech_result, str) and speech_result.strip():
-    st.session_state.speech_input = speech_result.strip()
-    st.experimental_rerun()
-
-text_input = st.chat_input("Type or use 🎤 voice above...")
 prompt = None
-
-if "speech_input" in st.session_state:
-    prompt = st.session_state.speech_input
-    del st.session_state.speech_input
+if speech_result and isinstance(speech_result, str) and speech_result.strip():
+    prompt = speech_result.strip()
 elif text_input:
     prompt = text_input.strip()
 
 if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state.chat_history.append({"role": "user", "content": prompt})
+
     try:
         response = client.chat.completions.create(
             model="llama3-8b-8192",
