@@ -100,7 +100,7 @@ speech_result = st_javascript("""await new Promise((resolve) => {
 
 
 text_input = st.chat_input("Type something or use voice...")
-prompt = text_input or speech_result
+prompt = speech_result if speech_result else text_input
 
 if prompt:
     st.chat_message("user").markdown(prompt)
