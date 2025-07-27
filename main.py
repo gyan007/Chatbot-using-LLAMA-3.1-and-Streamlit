@@ -6,7 +6,6 @@ from deep_translator import GoogleTranslator
 from indic_transliteration.sanscript import transliterate, DEVANAGARI, HK
 from streamlit_javascript import st_javascript
 
-
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     st.error("GROQ_API_KEY is missing. Set it in environment or Streamlit secrets.")
@@ -14,10 +13,8 @@ if not GROQ_API_KEY:
 
 client = Groq(api_key=GROQ_API_KEY)
 
-
 st.set_page_config(page_title="GyanVaani", page_icon="🦙")
 st.title("🎓 GyanBot – Chat with LLaMA 3.1 + Translation + Voice")
-
 
 if "language" not in st.session_state:
     st.session_state.language = "original"
@@ -36,7 +33,6 @@ with col4:
     if st.button("🇮🇳🅰 Hinglish"):
         st.session_state.language = "hinglish"
 
-
 def translate_text(text, target):
     if target == "original":
         return text
@@ -50,7 +46,6 @@ def translate_text(text, target):
     except Exception as e:
         return f"(Translation failed) {text} ({e})"
 
-
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -59,17 +54,15 @@ for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(translated)
 
-
-
-st.subheader("🎙️ Voice Input (Browser-Based)")
+st.markdown("#### 🎙️ Click below mic icon to speak:")
 
 components.html(
     """
-    <button onclick="startRecognition()" style="font-size:18px;padding:10px 20px;">🎤 Click to Speak</button>
-    <p id="transcript" style="font-size:16px;color:green;"></p>
+    <button onclick="startRecognition()" style="font-size:16px;padding:6px 16px;margin-bottom:10px;">🎤 Click to Speak</button>
+    <p id="transcript" style="font-size:15px;color:green;margin-top:5px;"></p>
     <script>
         var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'hi-IN';  // Change to 'en-IN' or 'en-US' for Hinglish/English
+        recognition.lang = 'hi-IN';
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
@@ -88,7 +81,6 @@ components.html(
     height=200,
 )
 
-
 speech_result = st_javascript("""await new Promise((resolve) => {
   window.addEventListener("message", (event) => {
     if (event.data.type === "SPEECH_RESULT") {
@@ -97,21 +89,22 @@ speech_result = st_javascript("""await new Promise((resolve) => {
   });
 });""")
 
-
-
-text_input = st.chat_input("Type something or use voice...")
-prompt = None
 if speech_result and isinstance(speech_result, str) and speech_result.strip():
-    prompt = speech_result.strip()
+    st.session_state.speech_input = speech_result.strip()
     st.experimental_rerun()
+
+text_input = st.chat_input("Type or use 🎤 voice above...")
+prompt = None
+
+if "speech_input" in st.session_state:
+    prompt = st.session_state.speech_input
+    del st.session_state.speech_input
 elif text_input:
     prompt = text_input.strip()
-
 
 if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state.chat_history.append({"role": "user", "content": prompt})
-
     try:
         response = client.chat.completions.create(
             model="llama3-8b-8192",
