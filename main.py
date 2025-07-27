@@ -30,7 +30,7 @@ with col2:
     if st.button("🇮🇳 Hindi"):
         st.session_state.language = "hindi"
 with col3:
-    if st.button("🇺🇸 English"):
+    if st.button("🇮🇳 English"):
         st.session_state.language = "english"
 with col4:
     if st.button("🇮🇳🅰 Hinglish"):
