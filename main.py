@@ -89,19 +89,27 @@ components.html(
 )
 
 
-speech_result = st_javascript("""await new Promise((resolve) => {
-  window.addEventListener("message", (event) => {
-    if (event.data.type === "SPEECH_RESULT") {
-      resolve(event.data.text);
-    }
-  });
-});""")
+speech_result = st_javascript("""
+    const result = await new Promise((resolve) => {
+        window.addEventListener("message", (event) => {
+            if (event.data.type === "SPEECH_RESULT") {
+                resolve(event.data.text);
+            }
+        });
+    });
+    Streamlit.setComponentValue(result);
+""")
 
 
+
+prompt = None
+
+# Prioritize voice input
 if speech_result and isinstance(speech_result, str) and speech_result.strip():
-    st.session_state["autofill_input"] = speech_result.strip()
+    prompt = speech_result.strip()
+else:
+    prompt = st.chat_input("Type something or use voice...")
 
-text_input = st.chat_input("Type something or use voice...", key="chat_input")
 
 
 if "autofill_input" in st.session_state:
