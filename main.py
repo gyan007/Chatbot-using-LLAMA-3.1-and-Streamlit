@@ -103,6 +103,7 @@ text_input = st.chat_input("Type something or use voice...")
 prompt = None
 if speech_result and isinstance(speech_result, str) and speech_result.strip():
     prompt = speech_result.strip()
+    st.experimental_rerun()
 elif text_input:
     prompt = text_input.strip()
 
