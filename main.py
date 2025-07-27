@@ -14,24 +14,39 @@ if not GROQ_API_KEY:
 client = Groq(api_key=GROQ_API_KEY)
 
 st.set_page_config(page_title="GyanVaani", page_icon="🦙", layout="wide")
-st.title("🎓 GyanBot – Chat with LLaMA 3.1 + Translation + Voice")
+st.markdown("""
+    <style>
+        #custom-input {
+            position: fixed;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            z-index: 9999;
+        }
+        #chat-container {
+            margin-bottom: 80px;
+        }
+        .msg {
+            background: #f1f1f1;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 10px;
+        }
+        .user { background-color: #d1e7dd; }
+        .assistant { background-color: #fff3cd; }
+    </style>
+""", unsafe_allow_html=True)
 
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 if "language" not in st.session_state:
     st.session_state.language = "original"
-
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    if st.button("🔁 Original"):
-        st.session_state.language = "original"
-with col2:
-    if st.button("🇮🇳 Hindi"):
-        st.session_state.language = "hindi"
-with col3:
-    if st.button("🇺🇸 English"):
-        st.session_state.language = "english"
-with col4:
-    if st.button("🇮🇳🅰 Hinglish"):
-        st.session_state.language = "hinglish"
 
 def translate_text(text, target):
     if target == "original":
@@ -40,74 +55,63 @@ def translate_text(text, target):
         if target == "hinglish":
             hindi_text = GoogleTranslator(source='auto', target='hi').translate(text)
             return transliterate(hindi_text, DEVANAGARI, HK)
-        else:
-            lang_code = "hi" if target == "hindi" else "en"
-            return GoogleTranslator(source='auto', target=lang_code).translate(text)
+        lang_code = "hi" if target == "hindi" else "en"
+        return GoogleTranslator(source='auto', target=lang_code).translate(text)
     except Exception as e:
         return f"(Translation failed) {text} ({e})"
 
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
-for msg in st.session_state.chat_history:
-    translated = translate_text(msg["content"], st.session_state.language)
-    with st.chat_message(msg["role"]):
-        st.markdown(translated)
+with st.container():
+    st.markdown("<div id='chat-container'>", unsafe_allow_html=True)
+    for msg in st.session_state.chat_history:
+        translated = translate_text(msg["content"], st.session_state.language)
+        role_class = "user" if msg["role"] == "user" else "assistant"
+        st.markdown(f"<div class='msg {role_class}'><strong>{msg['role'].capitalize()}:</strong> {translated}</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 components.html(
     """
+    <div id="custom-input">
+        <button onclick="startRecognition()">🎤</button>
+        <input id="voice-text" type="text" placeholder="Type or Speak..." style="flex: 1; padding: 10px;"/>
+        <button onclick="sendMessage()">Send</button>
+    </div>
     <script>
-    var recognition;
-    function startVoiceInput() {
-        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = 'hi-IN';
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
-        recognition.onresult = function(event) {
-            var transcript = event.results[0][0].transcript;
-            window.parent.postMessage({type: 'SPEECH_RESULT', text: transcript}, '*');
+
+        function startRecognition() {
+            recognition.start();
+        }
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById("voice-text").value = transcript;
         };
-        recognition.start();
-    }
+
+        function sendMessage() {
+            const text = document.getElementById("voice-text").value;
+            window.parent.postMessage({type: 'SEND_CHAT', text: text}, '*');
+            document.getElementById("voice-text").value = '';
+        }
     </script>
     """,
-    height=0,
+    height=100
 )
 
-st.markdown("""
-<style>
-    .stChatInputContainer { position: fixed !important; bottom: 0; width: 100%; background: white; padding: 0.5rem 1rem 1rem 1rem; z-index: 999; }
-</style>
-""", unsafe_allow_html=True)
+message = st_javascript("""
+    await new Promise((resolve) => {
+        window.addEventListener("message", (event) => {
+            if (event.data.type === "SEND_CHAT") {
+                resolve(event.data.text);
+            }
+        });
+    });
+""")
 
-col_input, col_voice = st.columns([0.85, 0.15])
-with col_input:
-    text_input = st.chat_input("Type or speak something...")
-with col_voice:
-    if st.button("🎤 Speak"):
-        components.html("""
-            <script>
-            startVoiceInput();
-            </script>
-        """, height=0)
-
-speech_result = st_javascript("""await new Promise((resolve) => {
-  window.addEventListener("message", (event) => {
-    if (event.data.type === "SPEECH_RESULT") {
-      resolve(event.data.text);
-    }
-  });
-});""")
-
-prompt = None
-if speech_result and isinstance(speech_result, str) and speech_result.strip():
-    prompt = speech_result.strip()
-elif text_input:
-    prompt = text_input.strip()
-
-if prompt:
-    st.chat_message("user").markdown(prompt)
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
+if message and isinstance(message, str) and message.strip():
+    st.session_state.chat_history.append({"role": "user", "content": message})
     try:
         response = client.chat.completions.create(
             model="llama3-8b-8192",
@@ -118,7 +122,6 @@ if prompt:
         )
         reply = response.choices[0].message.content
         st.session_state.chat_history.append({"role": "assistant", "content": reply})
-        with st.chat_message("assistant"):
-            st.markdown(translate_text(reply, st.session_state.language))
+        st.experimental_rerun()
     except Exception as e:
         st.error(f"Error: {e}")
