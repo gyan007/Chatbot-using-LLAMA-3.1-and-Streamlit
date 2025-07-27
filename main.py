@@ -14,10 +14,8 @@ if not GROQ_API_KEY:
 
 client = Groq(api_key=GROQ_API_KEY)
 
-
 st.set_page_config(page_title="GyanVaani", page_icon="🦙")
 st.title("🎓 GyanBot – AI for Everyone")
-
 
 if "language" not in st.session_state:
     st.session_state.language = "original"
@@ -59,17 +57,14 @@ for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(translated)
 
-
-
-st.subheader("🎙 Voice Input (Browser-Based)")
-
+# Mic UI using HTML + JavaScript
 components.html(
     """
-    <button onclick="startRecognition()" style="font-size:18px;padding:10px 20px;">🎤 Click to Speak</button>
+    <button onclick="startRecognition()" style="font-size:18px;padding:10px 20px;">🎤 Speak</button>
     <p id="transcript" style="font-size:16px;color:green;"></p>
     <script>
         var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'hi-IN';  // Change to 'en-IN' or 'en-US' for Hinglish/English
+        recognition.lang = 'en-IN';
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
@@ -81,31 +76,29 @@ components.html(
         recognition.onresult = function(event) {
             var transcript = event.results[0][0].transcript;
             window.parent.postMessage({type: 'SPEECH_RESULT', text: transcript}, '*');
-            document.getElementById("transcript").innerText = "🗣 You said: " + transcript;
+            document.getElementById("transcript").innerText = "🗣️ You said: " + transcript;
         };
     </script>
     """,
     height=200,
 )
 
+# Capture the voice result
+speech_result = st_javascript(
+    """
+    await new Promise((resolve) => {
+        window.addEventListener("message", (event) => {
+            if (event.data.type === "SPEECH_RESULT") {
+                resolve(event.data.text);
+            }
+        });
+    });
+    """
+)
 
-speech_result = st_javascript("""await new Promise((resolve) => {
-  window.addEventListener("message", (event) => {
-    if (event.data.type === "SPEECH_RESULT") {
-      resolve(event.data.text);
-    }
-  });
-});""")
-
-
-
-text_input = st.chat_input("Type something or use voice...")
-
-if speech_result and isinstance(speech_result, str) and speech_result.strip():
-    prompt = speech_result.strip()
-else:
-    prompt = text_input.strip() if text_input else None
-
+# Autofill chat input using speech
+default_prompt = speech_result.strip() if speech_result and isinstance(speech_result, str) else ""
+prompt = st.chat_input("Type or speak your query here...", key="user_input", value=default_prompt)
 
 if prompt:
     st.chat_message("user").markdown(prompt)
