@@ -1,10 +1,9 @@
 import os
 import streamlit as st
-import requests
 from groq import Groq
 from deep_translator import GoogleTranslator
-from indic_transliteration.sanscript import transliterate, DEVANAGARI, ITRANS, HK
-
+from indic_transliteration.sanscript import transliterate, DEVANAGARI, HK
+from streamlit_javascript import st_javascript
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
@@ -13,10 +12,8 @@ if not GROQ_API_KEY:
 
 client = Groq(api_key=GROQ_API_KEY)
 
-
 st.set_page_config(page_title="GyanVaani", page_icon="🦙")
 st.title("🎓 GyanBot– AI for Everyone")
-
 
 if "language" not in st.session_state:
     st.session_state.language = "original" 
@@ -29,12 +26,11 @@ with col2:
     if st.button("🇮🇳 Hindi"):
         st.session_state.language = "hindi"
 with col3:
-    if st.button("🇮🇳 English"):
+    if st.button("🇬🇧 English"):
         st.session_state.language = "english"
 with col4:
     if st.button("🇮🇳🅰 Hinglish"):
         st.session_state.language = "hinglish"
-
 
 def translate_text(text, target):
     if target == "original":
@@ -49,18 +45,48 @@ def translate_text(text, target):
     except Exception as e:
         return f"(Translation failed) {text} ({e})"
 
-
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-
 
 for msg in st.session_state.chat_history:
     translated_content = translate_text(msg["content"], st.session_state.language)
     with st.chat_message(msg["role"]):
         st.markdown(translated_content)
 
+st.subheader("🎙️ Voice Input")
+st.markdown("Click the mic and speak your query...")
 
-prompt = st.chat_input("Ask something...")
+if st.button("🎤 Speak Now"):
+    voice_text = st_javascript(
+        """
+        async () => {
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            if (!('webkitSpeechRecognition' in window)) {
+                return "";
+            }
+
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            return new Promise((resolve) => {
+                recognition.onresult = (event) => {
+                    resolve(event.results[0][0].transcript);
+                };
+                recognition.onerror = (event) => {
+                    resolve("");
+                };
+                recognition.start();
+            });
+        }
+        """
+    )
+else:
+    voice_text = ""
+
+prompt = voice_text or st.chat_input("Ask something...")
+
 if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state.chat_history.append({"role": "user", "content": prompt})
