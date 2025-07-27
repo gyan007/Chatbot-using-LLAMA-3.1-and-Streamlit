@@ -3,7 +3,8 @@ import streamlit as st
 import requests
 from groq import Groq
 from deep_translator import GoogleTranslator
-from indic_transliteration.sanscript import transliterate, DEVANAGARI, ITRANS
+from indic_transliteration.sanscript import transliterate, DEVANAGARI, ITRANS, HK
+
 
 # ===================== API Key ===================== #
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
