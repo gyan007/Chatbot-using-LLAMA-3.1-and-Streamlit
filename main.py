@@ -98,10 +98,11 @@ speech_result = st_javascript(
 
 # Autofill chat input using speech
 default_prompt = speech_result.strip() if speech_result and isinstance(speech_result, str) else ""
-prompt = st.chat_input("Type or speak your query here...", key="user_input", value=default_prompt)
+prompt = st.text_input("Type or speak your query here...", value=default_prompt, key="user_input")
 
-if prompt:
-    st.chat_message("user").markdown(prompt)
+
+if prompt and prompt.strip():
+    st.chat_message("user").markdown(prompt.strip())
     st.session_state.chat_history.append({"role": "user", "content": prompt})
 
     try:
