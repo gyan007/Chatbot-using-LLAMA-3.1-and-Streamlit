@@ -1,26 +1,25 @@
 import os
 import streamlit as st
-import streamlit.components.v1 as components
+import requests
 from groq import Groq
 from deep_translator import GoogleTranslator
-from indic_transliteration.sanscript import transliterate, DEVANAGARI, HK
-from streamlit_javascript import st_javascript
+from indic_transliteration.sanscript import transliterate, DEVANAGARI, ITRANS, HK
 
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
-    st.error("GROQ_API_KEY is missing. Set it in environment or Streamlit secrets.")
+    st.error("GROQ_API_KEY is missing. Set it in your environment or Streamlit secrets.")
     st.stop()
 
 client = Groq(api_key=GROQ_API_KEY)
 
 
 st.set_page_config(page_title="GyanVaani", page_icon="🦙")
-st.title("🎓 GyanBot – Chat with LLaMA 3.1 + Translation + Voice")
+st.title("🎓 GyanBot– AI for Everyone")
 
 
 if "language" not in st.session_state:
-    st.session_state.language = "original"
+    st.session_state.language = "original" 
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -30,7 +29,7 @@ with col2:
     if st.button("🇮🇳 Hindi"):
         st.session_state.language = "hindi"
 with col3:
-    if st.button("🇺🇸 English"):
+    if st.button("🇮🇳 English"):
         st.session_state.language = "english"
 with col4:
     if st.button("🇮🇳🅰 Hinglish"):
@@ -43,7 +42,7 @@ def translate_text(text, target):
     try:
         if target == "hinglish":
             hindi_text = GoogleTranslator(source='auto', target='hi').translate(text)
-            return transliterate(hindi_text, DEVANAGARI, HK)
+            return transliterate(hindi_text, DEVANAGARI, HK)  
         else:
             lang_code = "hi" if target == "hindi" else "en"
             return GoogleTranslator(source='auto', target=lang_code).translate(text)
@@ -54,71 +53,14 @@ def translate_text(text, target):
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+
 for msg in st.session_state.chat_history:
-    translated = translate_text(msg["content"], st.session_state.language)
+    translated_content = translate_text(msg["content"], st.session_state.language)
     with st.chat_message(msg["role"]):
-        st.markdown(translated)
+        st.markdown(translated_content)
 
 
-
-st.subheader("🎙 Voice Input (Browser-Based)")
-
-components.html(
-    """
-    <button onclick="startRecognition()" style="font-size:18px;padding:10px 20px;">🎤 Click to Speak</button>
-    <p id="transcript" style="font-size:16px;color:green;"></p>
-    <script>
-        var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'hi-IN';  // Change to 'en-IN' or 'en-US' for Hinglish/English
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        function startRecognition() {
-            document.getElementById("transcript").innerText = "🎧 Listening...";
-            recognition.start();
-        }
-
-        recognition.onresult = function(event) {
-            var transcript = event.results[0][0].transcript;
-            window.parent.postMessage({type: 'SPEECH_RESULT', text: transcript}, '*');
-            document.getElementById("transcript").innerText = "🗣 You said: " + transcript;
-        };
-    </script>
-    """,
-    height=200,
-)
-
-
-speech_result = st_javascript("""
-    const result = await new Promise((resolve) => {
-        window.addEventListener("message", (event) => {
-            if (event.data.type === "SPEECH_RESULT") {
-                resolve(event.data.text);
-            }
-        });
-    });
-    Streamlit.setComponentValue(result);
-""")
-
-
-
-prompt = None
-
-# Prioritize voice input
-if speech_result and isinstance(speech_result, str) and speech_result.strip():
-    prompt = speech_result.strip()
-else:
-    prompt = st.chat_input("Type something or use voice...")
-
-
-
-if "autofill_input" in st.session_state:
-    prompt = st.session_state.pop("autofill_input")
-else:
-    prompt = text_input.strip() if text_input else None
-
-
-
+prompt = st.chat_input("Ask something...")
 if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state.chat_history.append({"role": "user", "content": prompt})
@@ -128,12 +70,15 @@ if prompt:
             model="llama3-8b-8192",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                *st.session_state.chat_history,
+                *st.session_state.chat_history
             ]
         )
         reply = response.choices[0].message.content
         st.session_state.chat_history.append({"role": "assistant", "content": reply})
+
+        translated_reply = translate_text(reply, st.session_state.language)
         with st.chat_message("assistant"):
-            st.markdown(translate_text(reply, st.session_state.language))
+            st.markdown(translated_reply)
+
     except Exception as e:
         st.error(f"Error: {e}")
