@@ -14,8 +14,10 @@ if not GROQ_API_KEY:
 
 client = Groq(api_key=GROQ_API_KEY)
 
+
 st.set_page_config(page_title="GyanVaani", page_icon="🦙")
 st.title("🎓 GyanBot – Chat with LLaMA 3.1 + Translation + Voice")
+
 
 if "language" not in st.session_state:
     st.session_state.language = "original"
@@ -57,51 +59,53 @@ for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
         st.markdown(translated)
 
-col1, col2 = st.columns([0.1, 0.9])
-with col1:
-    voice_trigger = st.button("🎤")
-with col2:
-    text_input = st.chat_input("Type something or use 🎤 to speak")
 
-speech_result = None
-if voice_trigger:
-    st.session_state['voice_triggered'] = True
-    components.html(
-        """
-        <button onclick="startRecognition()" style="display:none;" id="hidden-voice-btn">Start</button>
-        <script>
-            var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = 'hi-IN';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
 
-            function startRecognition() {
-                recognition.start();
-            }
+st.subheader("🎙️ Voice Input (Browser-Based)")
 
-            recognition.onresult = function(event) {
-                var transcript = event.results[0][0].transcript;
-                window.parent.postMessage({type: 'SPEECH_RESULT', text: transcript}, '*');
-            };
+components.html(
+    """
+    <button onclick="startRecognition()" style="font-size:18px;padding:10px 20px;">🎤 Click to Speak</button>
+    <p id="transcript" style="font-size:16px;color:green;"></p>
+    <script>
+        var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'hi-IN';  // Change to 'en-IN' or 'en-US' for Hinglish/English
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
 
-            document.getElementById("hidden-voice-btn").click();
-        </script>
-        """,
-        height=0,
-    )
-    speech_result = st_javascript("""await new Promise((resolve) => {
-      window.addEventListener("message", (event) => {
-        if (event.data.type === "SPEECH_RESULT") {
-          resolve(event.data.text);
+        function startRecognition() {
+            document.getElementById("transcript").innerText = "🎧 Listening...";
+            recognition.start();
         }
-      });
-    });""")
 
+        recognition.onresult = function(event) {
+            var transcript = event.results[0][0].transcript;
+            window.parent.postMessage({type: 'SPEECH_RESULT', text: transcript}, '*');
+            document.getElementById("transcript").innerText = "🗣️ You said: " + transcript;
+        };
+    </script>
+    """,
+    height=200,
+)
+
+
+speech_result = st_javascript("""await new Promise((resolve) => {
+  window.addEventListener("message", (event) => {
+    if (event.data.type === "SPEECH_RESULT") {
+      resolve(event.data.text);
+    }
+  });
+});""")
+
+
+
+text_input = st.chat_input("Type something or use voice...")
 prompt = None
 if speech_result and isinstance(speech_result, str) and speech_result.strip():
     prompt = speech_result.strip()
 elif text_input:
     prompt = text_input.strip()
+
 
 if prompt:
     st.chat_message("user").markdown(prompt)
