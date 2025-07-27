@@ -2,16 +2,15 @@ import os
 import streamlit as st
 from groq import Groq
 
-# Load API key securely
+ 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
-    st.error("❌ GROQ_API_KEY is missing. Please set it in your environment or Streamlit secrets.")
+    st.error("GROQ_API_KEY is missing. Please set it in your environment or Streamlit secrets.")
     st.stop()
 
-# Initialize client
+ 
 client = Groq(api_key=GROQ_API_KEY)
-
-# Chat logic
+ 
 st.set_page_config(page_title="LLAMA 3.1. Chat", page_icon="🦙")
 st.title("🦙 LLAMA 3.1. ChatBot")
 
@@ -40,4 +39,4 @@ if prompt:
         with st.chat_message("assistant"):
             st.markdown(reply)
     except Exception as e:
-        st.error(f"❌ Error: {e}")
+        st.error(f"Error: {e}")
