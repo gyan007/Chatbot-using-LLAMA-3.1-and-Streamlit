@@ -98,13 +98,17 @@ speech_result = st_javascript("""await new Promise((resolve) => {
 });""")
 
 
-
-text_input = st.chat_input("Type something or use voice...")
-
 if speech_result and isinstance(speech_result, str) and speech_result.strip():
-    prompt = speech_result.strip()
+    st.session_state["autofill_input"] = speech_result.strip()
+
+text_input = st.chat_input("Type something or use voice...", key="chat_input")
+
+
+if "autofill_input" in st.session_state:
+    prompt = st.session_state.pop("autofill_input")
 else:
     prompt = text_input.strip() if text_input else None
+
 
 
 if prompt:
