@@ -58,30 +58,44 @@ st.markdown("Click the mic and speak your query...")
 
 if st.button("🎤 Speak Now"):
     voice_text = st_javascript(
-        """
-        async () => {
-            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-            if (!('webkitSpeechRecognition' in window)) {
-                return "";
-            }
+    """
+    async () => {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert("Your browser does not support voice recognition. Use Chrome.");
+            return "";
+        }
 
+        return new Promise((resolve) => {
             const recognition = new webkitSpeechRecognition();
             recognition.lang = 'en-US';
             recognition.continuous = false;
             recognition.interimResults = false;
 
-            return new Promise((resolve) => {
-                recognition.onresult = (event) => {
-                    resolve(event.results[0][0].transcript);
-                };
-                recognition.onerror = (event) => {
-                    resolve("");
-                };
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                resolve(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+                resolve("");
+            };
+
+            recognition.onnomatch = () => {
+                alert("Speech not recognized. Try again.");
+                resolve("");
+            };
+
+            try {
                 recognition.start();
-            });
-        }
-        """
-    )
+            } catch (err) {
+                alert("Recognition already started. Refresh the page.");
+                resolve("");
+            }
+        });
+    }
+    """
+)
 else:
     voice_text = ""
 
